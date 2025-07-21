@@ -1,53 +1,75 @@
-# AutomatePro: A Simple GUI Macro Recorder
+🎛️ AutomatePro: Simple GUI-Based Macro Recorder for Windows/Linux
 
-AutomatePro is a user-friendly desktop application built with Python and PyQt6 that allows you to record and play back your mouse clicks and keyboard presses. It's a simple tool designed to automate repetitive tasks on your computer.
+AutomatePro is a lightweight and intuitive desktop application built with Python and PyQt6 that lets you easily record and replay your mouse clicks and keyboard actions. Whether you're automating repetitive tasks or creating quick workflows, AutomatePro is your go-to tool for desktop automation.
 
-The application provides a clean and intuitive interface, with options for both dark and light modes to suit your preference.
+With real-time feedback, a clean interface, theme switching, and support for saving/loading macros, AutomatePro is both powerful and beginner-friendly.
+🚀 Features
 
------
+    🎥 Record & Playback
+    Record your keyboard and mouse actions and replay them with precise timing.
 
-## Features
+    🔁 Repeat Automation
+    Set how many times you want your macro to repeat automatically.
 
-  * **Record & Playback**: Easily record a sequence of keyboard and mouse actions and play them back accurately.
-  * **Repeat Actions**: Set the number of times you want the recorded macro to repeat.
-  * **Save & Load**: Save your recorded macros to a `.json` file to use them later, or load previously saved macros.
-  * **Real-time Action List**: See the actions you perform appear in a list in real-time as you record them.
-  * **Dual Theme**: Switch between a modern dark mode and a clean light mode.
-  * **Status Bar**: Get clear feedback on the application's current state (e.g., "Recording...", "Playback finished.", "Ready.").
-  * **Safe Threading**: The playback process runs in a separate thread, so the application remains responsive and doesn't freeze. You can also stop the playback at any time.
+    💾 Save & Load Macros
+    Export your recorded actions to .json files, and reload them anytime.
 
------
+    🧾 Real-time Action List
+    Watch your actions appear in the list instantly as you record.
 
-## How to Use
+    🌗 Dark & Light Themes
+    Switch between a modern dark mode and a clean light mode with one click.
 
-1.  **Prerequisites**: Make sure you have Python installed. Then, install the required libraries:
+    📣 Status Bar Notifications
+    Get clear status messages like “Recording...”, “Playing...”, or “Ready.”
 
-    ```bash
-    pip install PyQt6 pynput
-    ```
+    🧵 Safe Multi-threaded Playback
+    Playback runs on a separate thread to keep the app responsive. You can safely interrupt playback anytime.
 
-2.  **Recording**:
+📚 How to Use
+1. Install Dependencies
 
-      * Click the **"Start Recording"** button.
-      * Perform any mouse clicks or key presses you want to automate. You will see them appear in the "Recorded Actions" list.
-      * Click the **"Stop Recording"** button when you are finished.
+Make sure Python 3 is installed. Then install required packages:
 
-3.  **Playback**:
+pip install PyQt6 pynput
 
-      * After stopping the recording, the **"Play"** button will become active.
-      * Use the **"Repeat Count"** spinbox to set how many times the macro should run.
-      * Click **"Play"** to start the automation. The list will highlight each action as it is performed.
-      * You can click **"Stop Playback"** at any time to interrupt the process.
+2. Record Your Macro
 
-4.  **Saving and Loading**:
+    Click "Start Recording"
 
-      * Click **"Save"** to save your current list of actions to a file.
-      * Click **"Load"** to open a previously saved macro file. The actions will appear in the list, ready for playback.
+    Perform your mouse clicks and key presses
 
------
+    Click "Stop Recording" when done
 
-## Technologies Used
+Your actions will appear in the "Recorded Actions" list.
+3. Play the Macro
 
-  * **Python 3**
-  * **PyQt6**: For the graphical user interface (GUI).
-  * **Pynput**: For listening to and controlling mouse and keyboard input.
+    Set how many times to repeat using the "Repeat Count" control
+
+    Click "Play" to start playback
+
+    Use "Stop Playback" to cancel anytime
+
+4. Save or Load Macros
+
+    Click "Save" to export your actions to a .json file
+
+    Click "Load" to open a previously saved macro
+
+🛠 Technologies Used
+
+    Python 3
+
+    PyQt6 – For building the user interface
+
+    Pynput – For capturing and simulating keyboard/mouse input
+
+💡 Ideal Use Cases
+
+    Automating repetitive data entry
+
+    Running multi-step workflows
+
+    Creating quick UI demos or tests
+
+    Saving time on routine desktop tasks
