@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout
                              QFileDialog, QGridLayout, QStatusBar, QDialog,
                              QFormLayout, QLineEdit, QDialogButtonBox, QDoubleSpinBox,
                              QMenu)
-from PyQt6.QtCore import pyqtSignal, QObject, Qt, QPoint
+from PyQt6.QtCore import pyqtSignal, QObject, Qt, QPoint, QSize
 from PyQt6.QtGui import QAction, QIcon, QFont
 
 from pynput import mouse, keyboard
@@ -22,7 +22,6 @@ class EditActionDialog(QDialog):
         form_layout.setSpacing(10)
         form_layout.setContentsMargins(15, 15, 15, 15)
         
-        # Delay input with custom buttons
         self.delay_spinbox = QDoubleSpinBox()
         self.delay_spinbox.setMinimum(0.05)
         self.delay_spinbox.setMaximum(60.0)
@@ -34,11 +33,13 @@ class EditActionDialog(QDialog):
         delay_layout = QHBoxLayout()
         delay_inc_button = QPushButton()
         delay_inc_button.setIcon(QIcon.fromTheme("go-up"))
-        delay_inc_button.setFixedSize(24, 24)
+        delay_inc_button.setFixedSize(32, 32)
+        delay_inc_button.setIconSize(QSize(20, 20))
         delay_inc_button.clicked.connect(lambda: self.delay_spinbox.stepBy(1))
         delay_dec_button = QPushButton()
         delay_dec_button.setIcon(QIcon.fromTheme("go-down"))
-        delay_dec_button.setFixedSize(24, 24)
+        delay_dec_button.setFixedSize(32, 32)
+        delay_dec_button.setIconSize(QSize(20, 20))
         delay_dec_button.clicked.connect(lambda: self.delay_spinbox.stepBy(-1))
         delay_layout.addWidget(self.delay_spinbox)
         delay_layout.addWidget(delay_dec_button)
@@ -54,7 +55,6 @@ class EditActionDialog(QDialog):
             self.key_input.setPlaceholderText("Enter key")
             form_layout.addRow("Key:", self.key_input)
         elif action['type'] == 'mouse_click':
-            # X coordinate input with custom buttons
             self.x_spinbox = QSpinBox()
             self.x_spinbox.setMaximum(9999)
             self.x_spinbox.setValue(action['x'])
@@ -62,18 +62,19 @@ class EditActionDialog(QDialog):
             x_layout = QHBoxLayout()
             x_inc_button = QPushButton()
             x_inc_button.setIcon(QIcon.fromTheme("go-next"))
-            x_inc_button.setFixedSize(24, 24)
+            x_inc_button.setFixedSize(32, 32)
+            x_inc_button.setIconSize(QSize(20, 20))
             x_inc_button.clicked.connect(lambda: self.x_spinbox.stepBy(1))
             x_dec_button = QPushButton()
             x_dec_button.setIcon(QIcon.fromTheme("go-previous"))
-            x_dec_button.setFixedSize(24, 24)
+            x_dec_button.setFixedSize(32, 32)
+            x_dec_button.setIconSize(QSize(20, 20))
             x_dec_button.clicked.connect(lambda: self.x_spinbox.stepBy(-1))
             x_layout.addWidget(QLabel("X:"))
             x_layout.addWidget(self.x_spinbox)
             x_layout.addWidget(x_dec_button)
             x_layout.addWidget(x_inc_button)
             
-            # Y coordinate input with custom buttons
             self.y_spinbox = QSpinBox()
             self.y_spinbox.setMaximum(9999)
             self.y_spinbox.setValue(action['y'])
@@ -81,11 +82,13 @@ class EditActionDialog(QDialog):
             y_layout = QHBoxLayout()
             y_inc_button = QPushButton()
             y_inc_button.setIcon(QIcon.fromTheme("go-up"))
-            y_inc_button.setFixedSize(24, 24)
+            y_inc_button.setFixedSize(32, 32)
+            y_inc_button.setIconSize(QSize(20, 20))
             y_inc_button.clicked.connect(lambda: self.y_spinbox.stepBy(1))
             y_dec_button = QPushButton()
             y_dec_button.setIcon(QIcon.fromTheme("go-down"))
-            y_dec_button.setFixedSize(24, 24)
+            y_dec_button.setFixedSize(32, 32)
+            y_dec_button.setIconSize(QSize(20, 20))
             y_dec_button.clicked.connect(lambda: self.y_spinbox.stepBy(-1))
             y_layout.addWidget(QLabel("Y:"))
             y_layout.addWidget(self.y_spinbox)
@@ -141,51 +144,68 @@ class AutomatePro(QMainWindow):
         main_layout = QVBoxLayout(self.central_widget)
         main_layout.setSpacing(15)
         main_layout.setContentsMargins(20, 20, 20, 20)
+        
+        button_size = QSize(44, 44) # Still used for small buttons
+        icon_size = QSize(24, 24)
 
-        # Header with theme toggle
         header_layout = QHBoxLayout()
         title_label = QLabel("AutomatePro")
         title_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         header_layout.addWidget(title_label)
         header_layout.addStretch()
-        self.theme_button = QPushButton("Light Mode")
-        self.theme_button.setIcon(QIcon.fromTheme("weather-clear"))
+        self.theme_button = QPushButton() # Text set in apply_theme
+        self.theme_button.setIconSize(icon_size)
         header_layout.addWidget(self.theme_button)
         main_layout.addLayout(header_layout)
 
-        # Control buttons
         control_layout = QGridLayout()
         control_layout.setSpacing(10)
         
-        self.record_button = QPushButton("Record")
+        self.record_button = QPushButton(" Record")
         self.record_button.setIcon(QIcon.fromTheme("media-record"))
-        self.stop_button = QPushButton("Stop")
-        self.stop_button.setIcon(QIcon.fromTheme("media-playback-stop"))
-        self.play_button = QPushButton("Play")
-        self.play_button.setIcon(QIcon.fromTheme("media-playback-start"))
-        self.stop_playback_button = QPushButton("Stop Playback")
-        self.stop_playback_button.setIcon(QIcon.fromTheme("media-playback-pause"))
-        self.save_button = QPushButton("Save")
-        self.save_button.setIcon(QIcon.fromTheme("document-save"))
-        self.load_button = QPushButton("Load")
-        self.load_button.setIcon(QIcon.fromTheme("document-open"))
+        self.record_button.setIconSize(icon_size)
 
-        # Repeat count section
+        self.stop_button = QPushButton(" Stop Recording")
+        self.stop_button.setIcon(QIcon.fromTheme("media-playback-stop"))
+        self.stop_button.setIconSize(icon_size)
+
+        self.play_button = QPushButton(" Play")
+        self.play_button.setIcon(QIcon.fromTheme("media-playback-start"))
+        self.play_button.setIconSize(icon_size)
+        
+        self.stop_playback_button = QPushButton(" Stop Playback")
+        self.stop_playback_button.setIcon(QIcon.fromTheme("media-playback-pause"))
+        self.stop_playback_button.setIconSize(icon_size)
+        
+        self.save_button = QPushButton(" Save")
+        self.save_button.setIcon(QIcon.fromTheme("document-save"))
+        self.save_button.setIconSize(icon_size)
+        
+        self.load_button = QPushButton(" Load")
+        self.load_button.setIcon(QIcon.fromTheme("document-open"))
+        self.load_button.setIconSize(icon_size)
+
         iter_layout = QHBoxLayout()
         self.iter_label = QLabel("Repeats:")
         self.iter_spinbox = QSpinBox()
         self.iter_spinbox.setMinimum(1)
         self.iter_spinbox.setValue(1)
         self.iter_spinbox.setFixedWidth(80)
+        self.iter_spinbox.setFixedHeight(button_size.height())
         self.iter_spinbox.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
+        
         self.inc_button = QPushButton()
         self.inc_button.setIcon(QIcon.fromTheme("go-up"))
-        self.inc_button.setFixedSize(32, 32)
+        self.inc_button.setFixedSize(button_size)
+        self.inc_button.setIconSize(icon_size)
         self.inc_button.clicked.connect(lambda: self.iter_spinbox.stepBy(1))
+        
         self.dec_button = QPushButton()
         self.dec_button.setIcon(QIcon.fromTheme("go-down"))
-        self.dec_button.setFixedSize(32, 32)
+        self.dec_button.setFixedSize(button_size)
+        self.dec_button.setIconSize(icon_size)
         self.dec_button.clicked.connect(lambda: self.iter_spinbox.stepBy(-1))
+        
         iter_layout.addWidget(self.iter_label)
         iter_layout.addWidget(self.dec_button)
         iter_layout.addWidget(self.iter_spinbox)
@@ -201,7 +221,6 @@ class AutomatePro(QMainWindow):
         main_layout.addLayout(control_layout)
         main_layout.addLayout(iter_layout)
 
-        # Action list
         actions_label = QLabel("Recorded Actions (Right-click to edit/delete):")
         actions_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         main_layout.addWidget(actions_label)
@@ -213,12 +232,10 @@ class AutomatePro(QMainWindow):
         self.action_list_widget.setMinimumHeight(400)
         main_layout.addWidget(self.action_list_widget)
 
-        # Status bar
         self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)
         self.update_status("Ready")
 
-        # Connect signals
         self.theme_button.clicked.connect(self.toggle_theme)
         self.record_button.clicked.connect(self.start_recording)
         self.stop_button.clicked.connect(self.stop_recording)
@@ -232,7 +249,6 @@ class AutomatePro(QMainWindow):
         self.signals.playback_finished.connect(self.on_playback_finished)
         self.signals.status_update.connect(self.update_status)
 
-        # Initial button states
         self.stop_button.setEnabled(False)
         self.play_button.setEnabled(False)
         self.save_button.setEnabled(False)
@@ -242,18 +258,18 @@ class AutomatePro(QMainWindow):
 
     def get_dark_theme_qss(self):
         return """
-            QMainWindow, QWidget {
+            QMainWindow, QWidget, QDialog {
                 background-color: #1e1e2e;
                 color: #cdd6f4;
             }
             QPushButton {
                 background-color: #313244;
                 border: none;
-                padding: 10px;
+                padding: 8px;
                 border-radius: 8px;
                 color: #cdd6f4;
-                font-size: 12px;
-                min-height: 32px;
+                text-align: left;
+                padding-left: 10px;
             }
             QPushButton:hover {
                 background-color: #45475a;
@@ -264,6 +280,9 @@ class AutomatePro(QMainWindow):
             QPushButton:disabled {
                 background-color: #6c7086;
                 color: #9399b2;
+            }
+            QPushButton::icon {
+                color: #89b4fa; /* Light blue for icons in dark mode for contrast */
             }
             QListWidget {
                 background-color: #181825;
@@ -286,12 +305,13 @@ class AutomatePro(QMainWindow):
             QLabel {
                 color: #cdd6f4;
             }
-            QSpinBox, QDoubleSpinBox {
+            QSpinBox, QDoubleSpinBox, QLineEdit {
                 background-color: #181825;
                 border: none;
                 border-radius: 8px;
                 padding: 5px;
                 color: #cdd6f4;
+                min-height: 28px;
             }
             QStatusBar {
                 background-color: #181825;
@@ -312,29 +332,22 @@ class AutomatePro(QMainWindow):
                 background-color: #89b4fa;
                 color: #1e1e2e;
             }
-            QLineEdit {
-                background-color: #181825;
-                border: none;
-                border-radius: 8px;
-                padding: 5px;
-                color: #cdd6f4;
-            }
         """
 
     def get_light_theme_qss(self):
         return """
-            QMainWindow, QWidget {
+            QMainWindow, QWidget, QDialog {
                 background-color: #f5f5f5;
                 color: #1c2526;
             }
             QPushButton {
                 background-color: #ffffff;
                 border: 1px solid #d4d4d4;
-                padding: 10px;
-                border alkylborane: 8px;
+                padding: 8px;
+                border-radius: 8px;
                 color: #1c2526;
-                font-size: 12px;
-                min-height: 32px;
+                text-align: left;
+                padding-left: 10px;
             }
             QPushButton:hover {
                 background-color: #e0e0e0;
@@ -346,6 +359,9 @@ class AutomatePro(QMainWindow):
             QPushButton:disabled {
                 background-color: #e0e0e0;
                 color: #a0a0a0;
+            }
+            QPushButton::icon {
+                color: #1c2526; /* Dark color for icons in light mode for contrast */
             }
             QListWidget {
                 background-color: #ffffff;
@@ -368,12 +384,13 @@ class AutomatePro(QMainWindow):
             QLabel {
                 color: #1c2526;
             }
-            QSpinBox, QDoubleSpinBox {
+            QSpinBox, QDoubleSpinBox, QLineEdit {
                 background-color: #ffffff;
                 border: 1px solid #d4d4d4;
                 border-radius: 8px;
                 padding: 5px;
                 color: #1c2526;
+                min-height: 28px;
             }
             QStatusBar {
                 background-color: #ffffff;
@@ -394,24 +411,19 @@ class AutomatePro(QMainWindow):
                 background-color: #0078d4;
                 color: #ffffff;
             }
-            QLineEdit {
-                background-color: #ffffff;
-                border: 1px solid #d4d4d4;
-                border-radius: 8px;
-                padding: 5px;
-                color: #1c2526;
-            }
         """
     
     def apply_theme(self):
+        QIcon.setThemeName("breeze")  
+        
         if self.is_dark_mode:
             self.setStyleSheet(self.get_dark_theme_qss())
-            self.theme_button.setText("Light Mode")
             self.theme_button.setIcon(QIcon.fromTheme("weather-clear"))
+            self.theme_button.setText(" Light Mode")
         else:
             self.setStyleSheet(self.get_light_theme_qss())
-            self.theme_button.setText("Dark Mode")
-            self.theme_button.setIcon(QIcon.fromTheme("weather-clear-night"))
+            self.theme_button.setIcon(QIcon.fromTheme("weather-night"))
+            self.theme_button.setText(" Dark Mode")
 
     def toggle_theme(self):
         self.is_dark_mode = not self.is_dark_mode
@@ -435,8 +447,6 @@ class AutomatePro(QMainWindow):
         
         self.record_button.setEnabled(False)
         self.stop_button.setEnabled(True)
-       
-
         self.play_button.setEnabled(False)
         self.save_button.setEnabled(False)
         self.load_button.setEnabled(False)
