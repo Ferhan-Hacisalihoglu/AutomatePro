@@ -22,6 +22,7 @@ class EditActionDialog(QDialog):
         form_layout.setSpacing(10)
         form_layout.setContentsMargins(15, 15, 15, 15)
         
+        # Delay input with custom buttons
         self.delay_spinbox = QDoubleSpinBox()
         self.delay_spinbox.setMinimum(0.05)
         self.delay_spinbox.setMaximum(60.0)
@@ -29,7 +30,20 @@ class EditActionDialog(QDialog):
         self.delay_spinbox.setValue(action.get('delay', 1.0))
         self.delay_spinbox.setPrefix("Delay: ")
         self.delay_spinbox.setSuffix(" s")
-        form_layout.addRow("Delay:", self.delay_spinbox)
+        self.delay_spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
+        delay_layout = QHBoxLayout()
+        delay_inc_button = QPushButton()
+        delay_inc_button.setIcon(QIcon.fromTheme("go-up"))
+        delay_inc_button.setFixedSize(24, 24)
+        delay_inc_button.clicked.connect(lambda: self.delay_spinbox.stepBy(1))
+        delay_dec_button = QPushButton()
+        delay_dec_button.setIcon(QIcon.fromTheme("go-down"))
+        delay_dec_button.setFixedSize(24, 24)
+        delay_dec_button.clicked.connect(lambda: self.delay_spinbox.stepBy(-1))
+        delay_layout.addWidget(self.delay_spinbox)
+        delay_layout.addWidget(delay_dec_button)
+        delay_layout.addWidget(delay_inc_button)
+        form_layout.addRow("Delay:", delay_layout)
         
         self.type_label = QLabel(f"Type: {action['type'].replace('_', ' ').title()}")
         self.type_label.setFont(QFont("Arial", 10))
@@ -40,18 +54,46 @@ class EditActionDialog(QDialog):
             self.key_input.setPlaceholderText("Enter key")
             form_layout.addRow("Key:", self.key_input)
         elif action['type'] == 'mouse_click':
+            # X coordinate input with custom buttons
             self.x_spinbox = QSpinBox()
             self.x_spinbox.setMaximum(9999)
             self.x_spinbox.setValue(action['x'])
+            self.x_spinbox.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
+            x_layout = QHBoxLayout()
+            x_inc_button = QPushButton()
+            x_inc_button.setIcon(QIcon.fromTheme("go-next"))
+            x_inc_button.setFixedSize(24, 24)
+            x_inc_button.clicked.connect(lambda: self.x_spinbox.stepBy(1))
+            x_dec_button = QPushButton()
+            x_dec_button.setIcon(QIcon.fromTheme("go-previous"))
+            x_dec_button.setFixedSize(24, 24)
+            x_dec_button.clicked.connect(lambda: self.x_spinbox.stepBy(-1))
+            x_layout.addWidget(QLabel("X:"))
+            x_layout.addWidget(self.x_spinbox)
+            x_layout.addWidget(x_dec_button)
+            x_layout.addWidget(x_inc_button)
+            
+            # Y coordinate input with custom buttons
             self.y_spinbox = QSpinBox()
             self.y_spinbox.setMaximum(9999)
             self.y_spinbox.setValue(action['y'])
-            hbox = QHBoxLayout()
-            hbox.addWidget(QLabel("X:"))
-            hbox.addWidget(self.x_spinbox)
-            hbox.addWidget(QLabel("Y:"))
-            hbox.addWidget(self.y_spinbox)
-            form_layout.addRow("Position:", hbox)
+            self.y_spinbox.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
+            y_layout = QHBoxLayout()
+            y_inc_button = QPushButton()
+            y_inc_button.setIcon(QIcon.fromTheme("go-up"))
+            y_inc_button.setFixedSize(24, 24)
+            y_inc_button.clicked.connect(lambda: self.y_spinbox.stepBy(1))
+            y_dec_button = QPushButton()
+            y_dec_button.setIcon(QIcon.fromTheme("go-down"))
+            y_dec_button.setFixedSize(24, 24)
+            y_dec_button.clicked.connect(lambda: self.y_spinbox.stepBy(-1))
+            y_layout.addWidget(QLabel("Y:"))
+            y_layout.addWidget(self.y_spinbox)
+            y_layout.addWidget(y_dec_button)
+            y_layout.addWidget(y_inc_button)
+            
+            form_layout.addRow("X Position:", x_layout)
+            form_layout.addRow("Y Position:", y_layout)
 
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         button_box.accepted.connect(self.accept)
@@ -87,7 +129,6 @@ class AutomatePro(QMainWindow):
         self.signals = WorkerSignals()
         self.is_dark_mode = True
         self.last_action_time = 0
-        self.repeat_count = 1  # Added to store repeat count
         self.initUI()
 
     def initUI(self):
@@ -132,19 +173,22 @@ class AutomatePro(QMainWindow):
         # Repeat count section
         iter_layout = QHBoxLayout()
         self.iter_label = QLabel("Repeats:")
-        self.repeat_display = QLabel(str(self.repeat_count))
-        self.repeat_display.setFont(QFont("Arial", 10))
-        self.repeat_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.repeat_display.setFixedWidth(50)
+        self.iter_spinbox = QSpinBox()
+        self.iter_spinbox.setMinimum(1)
+        self.iter_spinbox.setValue(1)
+        self.iter_spinbox.setFixedWidth(80)
+        self.iter_spinbox.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
         self.inc_button = QPushButton()
-        self.inc_button.setIcon(QIcon.fromTheme("list-add"))
+        self.inc_button.setIcon(QIcon.fromTheme("go-up"))
         self.inc_button.setFixedSize(32, 32)
+        self.inc_button.clicked.connect(lambda: self.iter_spinbox.stepBy(1))
         self.dec_button = QPushButton()
-        self.dec_button.setIcon(QIcon.fromTheme("list-remove"))
+        self.dec_button.setIcon(QIcon.fromTheme("go-down"))
         self.dec_button.setFixedSize(32, 32)
+        self.dec_button.clicked.connect(lambda: self.iter_spinbox.stepBy(-1))
         iter_layout.addWidget(self.iter_label)
         iter_layout.addWidget(self.dec_button)
-        iter_layout.addWidget(self.repeat_display)
+        iter_layout.addWidget(self.iter_spinbox)
         iter_layout.addWidget(self.inc_button)
         iter_layout.addStretch()
 
@@ -182,8 +226,6 @@ class AutomatePro(QMainWindow):
         self.stop_playback_button.clicked.connect(self.request_stop_playback)
         self.save_button.clicked.connect(self.save_recording)
         self.load_button.clicked.connect(self.load_recording)
-        self.inc_button.clicked.connect(self.increment_repeat)
-        self.dec_button.clicked.connect(self.decrement_repeat)
         
         self.signals.action_added.connect(self.add_action_to_list)
         self.signals.playback_highlight.connect(self.highlight_action)
@@ -197,14 +239,6 @@ class AutomatePro(QMainWindow):
         self.stop_playback_button.setEnabled(False)
 
         self.apply_theme()
-
-    def increment_repeat(self):
-        self.repeat_count = min(self.repeat_count + 1, 999)
-        self.repeat_display.setText(str(self.repeat_count))
-
-    def decrement_repeat(self):
-        self.repeat_count = max(self.repeat_count - 1, 1)
-        self.repeat_display.setText(str(self.repeat_count))
 
     def get_dark_theme_qss(self):
         return """
@@ -259,34 +293,6 @@ class AutomatePro(QMainWindow):
                 padding: 5px;
                 color: #cdd6f4;
             }
-            QSpinBox::up-button, QDoubleSpinBox::up-button {
-                subcontrol-origin: border;
-                subcontrol-position: top right;
-                width: 20px;
-                background-color: #313244;
-                border-top-right-radius: 8px;
-            }
-            QSpinBox::down-button, QDoubleSpinBox::down-button {
-                subcontrol-origin: border;
-                subcontrol-position: bottom right;
-                width: 20px;
-                background-color: #313244;
-                border-bottom-right-radius: 8px;
-            }
-            QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-bottom: 7px solid #cdd6f4;
-            }
-            QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 7px solid #cdd6f4;
-            }
-            QSpinBox::up-button:hover, QSpinBox::down-button:hover,
-            QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
-                background-color: #45475a;
-            }
             QStatusBar {
                 background-color: #181825;
                 color: #cdd6f4;
@@ -325,7 +331,7 @@ class AutomatePro(QMainWindow):
                 background-color: #ffffff;
                 border: 1px solid #d4d4d4;
                 padding: 10px;
-                border-radius: 8px;
+                border alkylborane: 8px;
                 color: #1c2526;
                 font-size: 12px;
                 min-height: 32px;
@@ -368,36 +374,6 @@ class AutomatePro(QMainWindow):
                 border-radius: 8px;
                 padding: 5px;
                 color: #1c2526;
-            }
-            QSpinBox::up-button, QDoubleSpinBox::up-button {
-                subcontrol-origin: border;
-                subcontrol-position: top right;
-                width: 20px;
-                background-color: #ffffff;
-                border-left: 1px solid #d4d4d4;
-                border-top-right-radius: 8px;
-            }
-            QSpinBox::down-button, QDoubleSpinBox::down-button {
-                subcontrol-origin: border;
-                subcontrol-position: bottom right;
-                width: 20px;
-                background-color: #ffffff;
-                border-left: 1px solid #d4d4d4;
-                border-bottom-right-radius: 8px;
-            }
-            QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-bottom: 7px solid #1c2526;
-            }
-            QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 7px solid #1c2526;
-            }
-            QSpinBox::up-button:hover, QSpinBox::down-button:hover,
-            QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
-                background-color: #e0e0e0;
             }
             QStatusBar {
                 background-color: #ffffff;
@@ -459,6 +435,8 @@ class AutomatePro(QMainWindow):
         
         self.record_button.setEnabled(False)
         self.stop_button.setEnabled(True)
+       
+
         self.play_button.setEnabled(False)
         self.save_button.setEnabled(False)
         self.load_button.setEnabled(False)
@@ -466,7 +444,7 @@ class AutomatePro(QMainWindow):
         self.theme_button.setEnabled(False)
         self.inc_button.setEnabled(False)
         self.dec_button.setEnabled(False)
-        
+                
         self.signals.status_update.emit("Recording...")
         self.keyboard_listener = keyboard.Listener(on_press=self.on_press)
         self.mouse_listener = mouse.Listener(on_click=self.on_click)
@@ -509,7 +487,7 @@ class AutomatePro(QMainWindow):
         self.inc_button.setEnabled(False)
         self.dec_button.setEnabled(False)
         
-        iterations = self.repeat_count
+        iterations = self.iter_spinbox.value()
         self.signals.status_update.emit(f"Playing back recording {iterations} time(s)...")
 
         playback_thread = threading.Thread(target=self.run_playback, args=(iterations,))
