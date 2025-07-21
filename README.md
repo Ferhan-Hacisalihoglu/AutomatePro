@@ -26,26 +26,20 @@ The application provides a clean and intuitive interface, with options for both 
     pip install PyQt6 pynput
     ```
 
-2.  **Run the Application**:
-
-    ```bash
-    python AutomatePro.py
-    ```
-
-3.  **Recording**:
+2.  **Recording**:
 
       * Click the **"Start Recording"** button.
       * Perform any mouse clicks or key presses you want to automate. You will see them appear in the "Recorded Actions" list.
       * Click the **"Stop Recording"** button when you are finished.
 
-4.  **Playback**:
+3.  **Playback**:
 
       * After stopping the recording, the **"Play"** button will become active.
       * Use the **"Repeat Count"** spinbox to set how many times the macro should run.
       * Click **"Play"** to start the automation. The list will highlight each action as it is performed.
       * You can click **"Stop Playback"** at any time to interrupt the process.
 
-5.  **Saving and Loading**:
+4.  **Saving and Loading**:
 
       * Click **"Save"** to save your current list of actions to a file.
       * Click **"Load"** to open a previously saved macro file. The actions will appear in the list, ready for playback.
