@@ -2,13 +2,73 @@ import sys
 import threading
 import time
 import json
-import base64
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout,
                              QWidget, QListWidget, QLabel, QSpinBox, QHBoxLayout,
-                             QFileDialog, QGridLayout, QStatusBar)
-from PyQt6.QtCore import pyqtSignal, QObject
+                             QFileDialog, QGridLayout, QStatusBar, QDialog,
+                             QFormLayout, QLineEdit, QDialogButtonBox, QDoubleSpinBox,
+                             QMenu)
+from PyQt6.QtCore import pyqtSignal, QObject, Qt, QPoint
+from PyQt6.QtGui import QAction, QIcon, QFont
 
 from pynput import mouse, keyboard
+
+class EditActionDialog(QDialog):
+    def __init__(self, action, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Edit Action")
+        self.action = action
+        
+        form_layout = QFormLayout(self)
+        form_layout.setSpacing(10)
+        form_layout.setContentsMargins(15, 15, 15, 15)
+        
+        self.delay_spinbox = QDoubleSpinBox()
+        self.delay_spinbox.setMinimum(0.05)
+        self.delay_spinbox.setMaximum(60.0)
+        self.delay_spinbox.setSingleStep(0.05)
+        self.delay_spinbox.setValue(action.get('delay', 1.0))
+        self.delay_spinbox.setPrefix("Delay: ")
+        self.delay_spinbox.setSuffix(" s")
+        form_layout.addRow("Delay:", self.delay_spinbox)
+        
+        self.type_label = QLabel(f"Type: {action['type'].replace('_', ' ').title()}")
+        self.type_label.setFont(QFont("Arial", 10))
+        form_layout.addRow(self.type_label)
+        
+        if action['type'] == 'key_press':
+            self.key_input = QLineEdit(str(action['key']))
+            self.key_input.setPlaceholderText("Enter key")
+            form_layout.addRow("Key:", self.key_input)
+        elif action['type'] == 'mouse_click':
+            self.x_spinbox = QSpinBox()
+            self.x_spinbox.setMaximum(9999)
+            self.x_spinbox.setValue(action['x'])
+            self.y_spinbox = QSpinBox()
+            self.y_spinbox.setMaximum(9999)
+            self.y_spinbox.setValue(action['y'])
+            hbox = QHBoxLayout()
+            hbox.addWidget(QLabel("X:"))
+            hbox.addWidget(self.x_spinbox)
+            hbox.addWidget(QLabel("Y:"))
+            hbox.addWidget(self.y_spinbox)
+            form_layout.addRow("Position:", hbox)
+
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        form_layout.addRow(button_box)
+
+    def get_data(self):
+        updated_action = self.action.copy()
+        updated_action['delay'] = self.delay_spinbox.value()
+        
+        if self.action['type'] == 'key_press':
+            updated_action['key'] = self.key_input.text()
+        elif self.action['type'] == 'mouse_click':
+            updated_action['x'] = self.x_spinbox.value()
+            updated_action['y'] = self.y_spinbox.value()
+            
+        return updated_action
 
 class WorkerSignals(QObject):
     action_added = pyqtSignal(str)
@@ -19,7 +79,6 @@ class WorkerSignals(QObject):
 class AutomatePro(QMainWindow):
     def __init__(self):
         super().__init__()
-
         self.recorded_actions = []
         self.is_recording = False
         self.stop_playback_flag = False
@@ -27,53 +86,95 @@ class AutomatePro(QMainWindow):
         self.mouse_listener = None
         self.signals = WorkerSignals()
         self.is_dark_mode = True
-
+        self.last_action_time = 0
+        self.repeat_count = 1  # Added to store repeat count
         self.initUI()
 
     def initUI(self):
         self.setWindowTitle("AutomatePro")
-        self.setGeometry(200, 200, 550, 700)
+        self.setGeometry(200, 200, 600, 750)
 
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
 
-        self.grid_layout = QGridLayout(self.central_widget)
+        main_layout = QVBoxLayout(self.central_widget)
+        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(20, 20, 20, 20)
 
-        self.theme_button = QPushButton("Switch to Light Mode")
-        theme_layout = QHBoxLayout()
-        theme_layout.addStretch()
-        theme_layout.addWidget(self.theme_button)
-        self.grid_layout.addLayout(theme_layout, 0, 0, 1, 2)
+        # Header with theme toggle
+        header_layout = QHBoxLayout()
+        title_label = QLabel("AutomatePro")
+        title_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+        self.theme_button = QPushButton("Light Mode")
+        self.theme_button.setIcon(QIcon.fromTheme("weather-clear"))
+        header_layout.addWidget(self.theme_button)
+        main_layout.addLayout(header_layout)
 
-        self.record_button = QPushButton("Start Recording")
-        self.stop_button = QPushButton("Stop Recording")
+        # Control buttons
+        control_layout = QGridLayout()
+        control_layout.setSpacing(10)
+        
+        self.record_button = QPushButton("Record")
+        self.record_button.setIcon(QIcon.fromTheme("media-record"))
+        self.stop_button = QPushButton("Stop")
+        self.stop_button.setIcon(QIcon.fromTheme("media-playback-stop"))
         self.play_button = QPushButton("Play")
+        self.play_button.setIcon(QIcon.fromTheme("media-playback-start"))
         self.stop_playback_button = QPushButton("Stop Playback")
+        self.stop_playback_button.setIcon(QIcon.fromTheme("media-playback-pause"))
         self.save_button = QPushButton("Save")
+        self.save_button.setIcon(QIcon.fromTheme("document-save"))
         self.load_button = QPushButton("Load")
+        self.load_button.setIcon(QIcon.fromTheme("document-open"))
 
-        self.iter_label = QLabel("Repeat Count:")
-        self.iter_spinbox = QSpinBox()
-        self.iter_spinbox.setMinimum(1)
-        self.iter_spinbox.setValue(1)
-
-        self.action_list_widget = QListWidget()
-
-        self.grid_layout.addWidget(self.record_button, 1, 0)
-        self.grid_layout.addWidget(self.stop_button, 1, 1)
-        self.grid_layout.addWidget(self.play_button, 2, 0)
-        self.grid_layout.addWidget(self.stop_playback_button, 2, 1)
-        self.grid_layout.addWidget(self.save_button, 3, 0)
-        self.grid_layout.addWidget(self.load_button, 3, 1)
-        
+        # Repeat count section
         iter_layout = QHBoxLayout()
+        self.iter_label = QLabel("Repeats:")
+        self.repeat_display = QLabel(str(self.repeat_count))
+        self.repeat_display.setFont(QFont("Arial", 10))
+        self.repeat_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.repeat_display.setFixedWidth(50)
+        self.inc_button = QPushButton()
+        self.inc_button.setIcon(QIcon.fromTheme("list-add"))
+        self.inc_button.setFixedSize(32, 32)
+        self.dec_button = QPushButton()
+        self.dec_button.setIcon(QIcon.fromTheme("list-remove"))
+        self.dec_button.setFixedSize(32, 32)
         iter_layout.addWidget(self.iter_label)
-        iter_layout.addWidget(self.iter_spinbox)
-        self.grid_layout.addLayout(iter_layout, 4, 0, 1, 2)
+        iter_layout.addWidget(self.dec_button)
+        iter_layout.addWidget(self.repeat_display)
+        iter_layout.addWidget(self.inc_button)
+        iter_layout.addStretch()
 
-        self.grid_layout.addWidget(QLabel("Recorded Actions:"), 5, 0, 1, 2)
-        self.grid_layout.addWidget(self.action_list_widget, 6, 0, 1, 2)
+        control_layout.addWidget(self.record_button, 0, 0)
+        control_layout.addWidget(self.stop_button, 0, 1)
+        control_layout.addWidget(self.play_button, 1, 0)
+        control_layout.addWidget(self.stop_playback_button, 1, 1)
+        control_layout.addWidget(self.save_button, 2, 0)
+        control_layout.addWidget(self.load_button, 2, 1)
+        main_layout.addLayout(control_layout)
+        main_layout.addLayout(iter_layout)
+
+        # Action list
+        actions_label = QLabel("Recorded Actions (Right-click to edit/delete):")
+        actions_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        main_layout.addWidget(actions_label)
         
+        self.action_list_widget = QListWidget()
+        self.action_list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.action_list_widget.customContextMenuRequested.connect(self.show_context_menu)
+        self.action_list_widget.setAlternatingRowColors(True)
+        self.action_list_widget.setMinimumHeight(400)
+        main_layout.addWidget(self.action_list_widget)
+
+        # Status bar
+        self.statusBar = QStatusBar()
+        self.setStatusBar(self.statusBar)
+        self.update_status("Ready")
+
+        # Connect signals
         self.theme_button.clicked.connect(self.toggle_theme)
         self.record_button.clicked.connect(self.start_recording)
         self.stop_button.clicked.connect(self.stop_recording)
@@ -81,74 +182,260 @@ class AutomatePro(QMainWindow):
         self.stop_playback_button.clicked.connect(self.request_stop_playback)
         self.save_button.clicked.connect(self.save_recording)
         self.load_button.clicked.connect(self.load_recording)
+        self.inc_button.clicked.connect(self.increment_repeat)
+        self.dec_button.clicked.connect(self.decrement_repeat)
         
         self.signals.action_added.connect(self.add_action_to_list)
         self.signals.playback_highlight.connect(self.highlight_action)
         self.signals.playback_finished.connect(self.on_playback_finished)
         self.signals.status_update.connect(self.update_status)
 
-        self.statusBar = QStatusBar()
-        self.setStatusBar(self.statusBar)
-        self.update_status("Ready.")
-
+        # Initial button states
         self.stop_button.setEnabled(False)
         self.play_button.setEnabled(False)
         self.save_button.setEnabled(False)
         self.stop_playback_button.setEnabled(False)
-        
+
         self.apply_theme()
 
+    def increment_repeat(self):
+        self.repeat_count = min(self.repeat_count + 1, 999)
+        self.repeat_display.setText(str(self.repeat_count))
+
+    def decrement_repeat(self):
+        self.repeat_count = max(self.repeat_count - 1, 1)
+        self.repeat_display.setText(str(self.repeat_count))
+
     def get_dark_theme_qss(self):
-        up_arrow_white = base64.b64encode(b'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="5"><polygon points="5,0 10,5 0,5" fill="#ecf0f1"/></svg>').decode('utf-8')
-        down_arrow_white = base64.b64encode(b'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="5"><polygon points="0,0 10,0 5,5" fill="#ecf0f1"/></svg>').decode('utf-8')
-        
-        return f"""
-            QMainWindow, QWidget {{ background-color: #2c3e50; color: #ecf0f1; }}
-            QPushButton {{ background-color: #34495e; border: 1px solid #2c3e50; padding: 8px; border-radius: 5px; text-align: center; }}
-            QPushButton:hover {{ background-color: #4a6278; }}
-            QPushButton:pressed {{ background-color: #2a3a4a; }}
-            QPushButton:disabled {{ background-color: #525252; color: #999999; }}
-            QListWidget {{ background-color: #34495e; border: 1px solid #2c3e50; border-radius: 5px; }}
-            QListWidget::item:selected {{ background-color: #3498db; }}
-            QLabel {{ color: #ecf0f1; }}
-            QSpinBox {{ background-color: #34495e; border: 1px solid #2c3e50; border-radius: 5px; padding: 2px; color: #ecf0f1; }}
-            QSpinBox::up-button {{ subcontrol-origin: border; subcontrol-position: top right; width: 16px; border-left: 1px solid #2c3e50; border-top-right-radius: 5px; }}
-            QSpinBox::down-button {{ subcontrol-origin: border; subcontrol-position: bottom right; width: 16px; border-left: 1px solid #2c3e50; border-bottom-right-radius: 5px; }}
-            QSpinBox::up-button:hover, QSpinBox::down-button:hover {{ background-color: #4a6278; }}
-            QSpinBox::up-arrow {{ image: url(data:image/svg+xml;base64,{up_arrow_white}); width: 10px; height: 5px; }}
-            QSpinBox::down-arrow {{ image: url(data:image/svg+xml;base64,{down_arrow_white}); width: 10px; height: 5px; }}
-            QStatusBar {{ color: #ecf0f1; font-size: 9pt; }}
+        return """
+            QMainWindow, QWidget {
+                background-color: #1e1e2e;
+                color: #cdd6f4;
+            }
+            QPushButton {
+                background-color: #313244;
+                border: none;
+                padding: 10px;
+                border-radius: 8px;
+                color: #cdd6f4;
+                font-size: 12px;
+                min-height: 32px;
+            }
+            QPushButton:hover {
+                background-color: #45475a;
+            }
+            QPushButton:pressed {
+                background-color: #585b70;
+            }
+            QPushButton:disabled {
+                background-color: #6c7086;
+                color: #9399b2;
+            }
+            QListWidget {
+                background-color: #181825;
+                border: none;
+                border-radius: 8px;
+                color: #cdd6f4;
+                padding: 5px;
+            }
+            QListWidget::item {
+                padding: 8px;
+                border-radius: 4px;
+            }
+            QListWidget::item:selected {
+                background-color: #89b4fa;
+                color: #1e1e2e;
+            }
+            QListWidget::item:alternate {
+                background-color: #1e1e2e;
+            }
+            QLabel {
+                color: #cdd6f4;
+            }
+            QSpinBox, QDoubleSpinBox {
+                background-color: #181825;
+                border: none;
+                border-radius: 8px;
+                padding: 5px;
+                color: #cdd6f4;
+            }
+            QSpinBox::up-button, QDoubleSpinBox::up-button {
+                subcontrol-origin: border;
+                subcontrol-position: top right;
+                width: 20px;
+                background-color: #313244;
+                border-top-right-radius: 8px;
+            }
+            QSpinBox::down-button, QDoubleSpinBox::down-button {
+                subcontrol-origin: border;
+                subcontrol-position: bottom right;
+                width: 20px;
+                background-color: #313244;
+                border-bottom-right-radius: 8px;
+            }
+            QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-bottom: 7px solid #cdd6f4;
+            }
+            QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 7px solid #cdd6f4;
+            }
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover,
+            QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
+                background-color: #45475a;
+            }
+            QStatusBar {
+                background-color: #181825;
+                color: #cdd6f4;
+                font-size: 10pt;
+            }
+            QMenu {
+                background-color: #181825;
+                border: none;
+                color: #cdd6f4;
+                padding: 5px;
+            }
+            QMenu::item {
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QMenu::item:selected {
+                background-color: #89b4fa;
+                color: #1e1e2e;
+            }
+            QLineEdit {
+                background-color: #181825;
+                border: none;
+                border-radius: 8px;
+                padding: 5px;
+                color: #cdd6f4;
+            }
         """
 
     def get_light_theme_qss(self):
-        up_arrow_black = base64.b64encode(b'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="5"><polygon points="5,0 10,5 0,5" fill="#000000"/></svg>').decode('utf-8')
-        down_arrow_black = base64.b64encode(b'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="5"><polygon points="0,0 10,0 5,5" fill="#000000"/></svg>').decode('utf-8')
-
-        return f"""
-            QMainWindow, QWidget {{ background-color: #f0f0f0; color: #000000; }}
-            QPushButton {{ background-color: #e1e1e1; border: 1px solid #adadad; padding: 8px; border-radius: 5px; text-align: center; }}
-            QPushButton:hover {{ background-color: #e5e5e5; border: 1px solid #0078d7;}}
-            QPushButton:pressed {{ background-color: #c6c6c6; }}
-            QPushButton:disabled {{ background-color: #d3d3d3; color: #a0a0a0; }}
-            QListWidget {{ background-color: #ffffff; border: 1px solid #c2c2c2; border-radius: 5px; }}
-            QListWidget::item:selected {{ background-color: #0078d7; color: #ffffff; }}
-            QLabel {{ color: #000000; }}
-            QSpinBox {{ background-color: #ffffff; border: 1px solid #c2c2c2; border-radius: 5px; padding: 2px; color: #000000; }}
-            QSpinBox::up-button {{ subcontrol-origin: border; subcontrol-position: top right; width: 16px; border-left: 1px solid #c2c2c2; border-top-right-radius: 5px; }}
-            QSpinBox::down-button {{ subcontrol-origin: border; subcontrol-position: bottom right; width: 16px; border-left: 1px solid #c2c2c2; border-bottom-right-radius: 5px; }}
-            QSpinBox::up-button:hover, QSpinBox::down-button:hover {{ background-color: #e5e5e5; }}
-            QSpinBox::up-arrow {{ image: url(data:image/svg+xml;base64,{up_arrow_black}); width: 10px; height: 5px; }}
-            QSpinBox::down-arrow {{ image: url(data:image/svg+xml;base64,{down_arrow_black}); width: 10px; height: 5px; }}
-            QStatusBar {{ color: #000000; font-size: 9pt; }}
+        return """
+            QMainWindow, QWidget {
+                background-color: #f5f5f5;
+                color: #1c2526;
+            }
+            QPushButton {
+                background-color: #ffffff;
+                border: 1px solid #d4d4d4;
+                padding: 10px;
+                border-radius: 8px;
+                color: #1c2526;
+                font-size: 12px;
+                min-height: 32px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+                border: 1px solid #0078d4;
+            }
+            QPushButton:pressed {
+                background-color: #c7c7c7;
+            }
+            QPushButton:disabled {
+                background-color: #e0e0e0;
+                color: #a0a0a0;
+            }
+            QListWidget {
+                background-color: #ffffff;
+                border: 1px solid #d4d4d4;
+                border-radius: 8px;
+                color: #1c2526;
+                padding: 5px;
+            }
+            QListWidget::item {
+                padding: 8px;
+                border-radius: 4px;
+            }
+            QListWidget::item:selected {
+                background-color: #0078d4;
+                color: #ffffff;
+            }
+            QListWidget::item:alternate {
+                background-color: #f0f0f0;
+            }
+            QLabel {
+                color: #1c2526;
+            }
+            QSpinBox, QDoubleSpinBox {
+                background-color: #ffffff;
+                border: 1px solid #d4d4d4;
+                border-radius: 8px;
+                padding: 5px;
+                color: #1c2526;
+            }
+            QSpinBox::up-button, QDoubleSpinBox::up-button {
+                subcontrol-origin: border;
+                subcontrol-position: top right;
+                width: 20px;
+                background-color: #ffffff;
+                border-left: 1px solid #d4d4d4;
+                border-top-right-radius: 8px;
+            }
+            QSpinBox::down-button, QDoubleSpinBox::down-button {
+                subcontrol-origin: border;
+                subcontrol-position: bottom right;
+                width: 20px;
+                background-color: #ffffff;
+                border-left: 1px solid #d4d4d4;
+                border-bottom-right-radius: 8px;
+            }
+            QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-bottom: 7px solid #1c2526;
+            }
+            QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 7px solid #1c2526;
+            }
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover,
+            QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
+                background-color: #e0e0e0;
+            }
+            QStatusBar {
+                background-color: #ffffff;
+                color: #1c2526;
+                font-size: 10pt;
+            }
+            QMenu {
+                background-color: #ffffff;
+                border: 1px solid #d4d4d4;
+                color: #1c2526;
+                padding: 5px;
+            }
+            QMenu::item {
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QMenu::item:selected {
+                background-color: #0078d4;
+                color: #ffffff;
+            }
+            QLineEdit {
+                background-color: #ffffff;
+                border: 1px solid #d4d4d4;
+                border-radius: 8px;
+                padding: 5px;
+                color: #1c2526;
+            }
         """
     
     def apply_theme(self):
         if self.is_dark_mode:
             self.setStyleSheet(self.get_dark_theme_qss())
-            self.theme_button.setText("Switch to Light Mode")
+            self.theme_button.setText("Light Mode")
+            self.theme_button.setIcon(QIcon.fromTheme("weather-clear"))
         else:
             self.setStyleSheet(self.get_light_theme_qss())
-            self.theme_button.setText("Switch to Dark Mode")
+            self.theme_button.setText("Dark Mode")
+            self.theme_button.setIcon(QIcon.fromTheme("weather-clear-night"))
 
     def toggle_theme(self):
         self.is_dark_mode = not self.is_dark_mode
@@ -168,6 +455,7 @@ class AutomatePro(QMainWindow):
         self.is_recording = True
         self.recorded_actions = []
         self.action_list_widget.clear()
+        self.last_action_time = time.time()
         
         self.record_button.setEnabled(False)
         self.stop_button.setEnabled(True)
@@ -176,6 +464,8 @@ class AutomatePro(QMainWindow):
         self.load_button.setEnabled(False)
         self.stop_playback_button.setEnabled(False)
         self.theme_button.setEnabled(False)
+        self.inc_button.setEnabled(False)
+        self.dec_button.setEnabled(False)
         
         self.signals.status_update.emit("Recording...")
         self.keyboard_listener = keyboard.Listener(on_press=self.on_press)
@@ -197,6 +487,8 @@ class AutomatePro(QMainWindow):
         self.stop_button.setEnabled(False)
         self.load_button.setEnabled(True)
         self.theme_button.setEnabled(True)
+        self.inc_button.setEnabled(True)
+        self.dec_button.setEnabled(True)
         if self.recorded_actions:
             self.play_button.setEnabled(True)
             self.save_button.setEnabled(True)
@@ -214,8 +506,10 @@ class AutomatePro(QMainWindow):
         self.load_button.setEnabled(False)
         self.stop_playback_button.setEnabled(True)
         self.theme_button.setEnabled(False)
+        self.inc_button.setEnabled(False)
+        self.dec_button.setEnabled(False)
         
-        iterations = self.iter_spinbox.value()
+        iterations = self.repeat_count
         self.signals.status_update.emit(f"Playing back recording {iterations} time(s)...")
 
         playback_thread = threading.Thread(target=self.run_playback, args=(iterations,))
@@ -231,6 +525,8 @@ class AutomatePro(QMainWindow):
         self.load_button.setEnabled(True)
         self.stop_playback_button.setEnabled(False)
         self.theme_button.setEnabled(True)
+        self.inc_button.setEnabled(True)
+        self.dec_button.setEnabled(True)
         if self.recorded_actions:
             self.play_button.setEnabled(True)
             self.save_button.setEnabled(True)
@@ -262,36 +558,103 @@ class AutomatePro(QMainWindow):
                 self.action_list_widget.clear()
 
     def format_action_to_string(self, action):
+        delay_str = f"[Delay: {action.get('delay', 0.0):.2f}s]"
         if action['type'] == 'key_press':
-            return f"Key Press: {action['key']}"
+            return f"{delay_str} Key Press: {action['key']}"
         elif action['type'] == 'mouse_click':
             btn_name = action['button'].replace('Button.', '').capitalize()
-            return f"Mouse Click: ({action['x']}, {action['y']}) - {btn_name}"
-        return "Unknown Action"
+            return f"{delay_str} Mouse Click: ({action['x']}, {action['y']}) - {btn_name}"
+        return f"{delay_str} Unknown Action"
 
     def populate_list_from_actions(self):
         self.action_list_widget.clear()
         for action in self.recorded_actions:
             action_text = self.format_action_to_string(action)
             self.action_list_widget.addItem(action_text)
+            
+    def show_context_menu(self, pos: QPoint):
+        item = self.action_list_widget.itemAt(pos)
+        if not item:
+            return
+
+        context_menu = QMenu(self)
+        edit_action = QAction("Edit", self)
+        edit_action.setIcon(QIcon.fromTheme("document-edit"))
+        delete_action = QAction("Delete", self)
+        delete_action.setIcon(QIcon.fromTheme("edit-delete"))
+        
+        context_menu.addAction(edit_action)
+        context_menu.addAction(delete_action)
+        
+        action = context_menu.exec(self.action_list_widget.mapToGlobal(pos))
+        
+        if action == edit_action:
+            self.edit_selected_action()
+        elif action == delete_action:
+            self.delete_selected_action()
+
+    def edit_selected_action(self):
+        selected_row = self.action_list_widget.currentRow()
+        if selected_row < 0:
+            return
+            
+        action_to_edit = self.recorded_actions[selected_row]
+        
+        dialog = EditActionDialog(action_to_edit, self)
+        if dialog.exec():
+            updated_action = dialog.get_data()
+            self.recorded_actions[selected_row] = updated_action
+            self.populate_list_from_actions()
+            self.action_list_widget.setCurrentRow(selected_row)
+            self.update_status("Action updated.")
+
+    def delete_selected_action(self):
+        selected_row = self.action_list_widget.currentRow()
+        if selected_row < 0:
+            return
+            
+        del self.recorded_actions[selected_row]
+        self.populate_list_from_actions()
+        self.update_status("Action deleted.")
+        if not self.recorded_actions:
+            self.play_button.setEnabled(False)
+            self.save_button.setEnabled(False)
+    
+    def record_action(self, action_data):
+        current_time = time.time()
+        delay = current_time - self.last_action_time
+        
+        clamped_delay = 0.0
+        if delay < 1.0:
+            clamped_delay = 0.05
+        elif delay > 30.0:
+            clamped_delay = 30.0
+        else:
+            clamped_delay = delay
+        
+        if not self.recorded_actions:
+            clamped_delay = 0.05
+
+        action_data['delay'] = clamped_delay
+        action_data['time'] = current_time
+        
+        self.recorded_actions.append(action_data)
+        self.signals.action_added.emit(self.format_action_to_string(action_data))
+        
+        self.last_action_time = current_time
 
     def on_press(self, key):
         if self.is_recording:
-            action_time = time.time()
             try:
-                action = {'type': 'key_press', 'key': key.char, 'time': action_time}
+                action = {'type': 'key_press', 'key': key.char}
             except AttributeError:
-                action = {'type': 'key_press', 'key': str(key), 'time': action_time}
-            
-            self.recorded_actions.append(action)
-            self.signals.action_added.emit(self.format_action_to_string(action))
+                action = {'type': 'key_press', 'key': str(key)}
+            self.record_action(action)
 
     def on_click(self, x, y, button, pressed):
         if self.is_recording and pressed:
-            action_time = time.time()
-            action = {'type': 'mouse_click', 'x': x, 'y': y, 'button': str(button), 'time': action_time}
-            self.recorded_actions.append(action)
-            self.signals.action_added.emit(self.format_action_to_string(action))
+            action = {'type': 'mouse_click', 'x': x, 'y': y, 'button': str(button)}
+            self.record_action(action)
 
     def run_playback(self, iterations):
         try:
@@ -306,20 +669,13 @@ class AutomatePro(QMainWindow):
                 
                 if not self.recorded_actions:
                     break
-                
-                if self.recorded_actions:
-                    last_action_time = self.recorded_actions[0]['time']
-                else:
-                    last_action_time = time.time()
 
                 for index, action in enumerate(self.recorded_actions):
                     if self.stop_playback_flag:
                         break
 
-                    delay = action['time'] - last_action_time
-                    if delay > 0:
-                        time.sleep(delay)
-                    last_action_time = action['time']
+                    delay = action.get('delay', 0.05)
+                    time.sleep(delay)
 
                     self.signals.playback_highlight.emit(index)
                     
@@ -333,20 +689,21 @@ class AutomatePro(QMainWindow):
                     
                     elif action['type'] == 'key_press':
                         key_to_press = action['key']
-                        if key_to_press.startswith('Key.'):
+                        if isinstance(key_to_press, str) and key_to_press.startswith('Key.'):
                             key_name = key_to_press.split('.')[-1]
                             key_to_press = getattr(keyboard.Key, key_name, key_name)
                         
-                        if key_to_press:
+                        try:
                             keyboard_ctrl.press(key_to_press)
                             keyboard_ctrl.release(key_to_press)
+                        except Exception as e:
+                            print(f"Could not press key '{key_to_press}': {e}")
                 
                 if i < iterations - 1 and not self.stop_playback_flag:
                     time.sleep(1) 
 
         finally:
             self.signals.playback_finished.emit()
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
