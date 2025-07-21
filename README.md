@@ -1,72 +1,71 @@
-# 🎛️ AutomatePro: Basit ve Güçlü GUI Tabanlı Makro Kaydedici
+# 🎛️ AutomatePro: A Simple and Powerful GUI-Based Macro Recorder
 
-AutomatePro, fare tıklamalarınızı ve klavye eylemlerinizi kolayca kaydedip tekrar oynatmanızı sağlayan, Python ve PyQt6 ile oluşturulmuş hafif ve sezgisel bir masaüstü uygulamasıdır. İster tekrarlayan görevleri otomatikleştirin, ister hızlı iş akışları oluşturun, AutomatePro masaüstü otomasyonu için başvuracağınız araçtır.
+AutomatePro is a lightweight and intuitive desktop application built with Python and PyQt6 that lets you easily record and replay your mouse clicks and keyboard actions. Whether you're automating repetitive tasks or creating complex workflows, AutomatePro is your go-to tool for desktop automation.
 
-Gerçek zamanlı geri bildirim, temiz arayüz, modern temalar, eylemleri düzenleme ve kaydetme/yükleme desteği ile AutomatePro hem güçlü hem de başlangıç seviyesi kullanıcılar için dostudur.
+With a focus on both power and ease-of-use, AutomatePro supports action editing, smart delay capture, and a modern interface, making it the perfect tool for your automation needs.
 
-## 🚀 Özellikler
+## 🚀 Features
 
-  * **🎥 Kayıt & Oynatma**: Klavye ve fare eylemlerinizi kaydedin ve hassas zamanlamayla tekrar oynatın.
-  * **✏️ Eylemleri Düzenle & Sil**: Kaydettikten sonra bir eylemi beğenmediniz mi? Sağ tıklayarak **gecikmesini, tuşunu veya fare koordinatlarını** değiştirin ya da tamamen silin.
-  * **⏱️ Akıllı Gecikme Kaydı**: Eylemler arasındaki bekleme süresini **otomatik olarak** hesaplar ve kaydeder, böylece makrolarınız daha doğal çalışır.
-  * **🔦 Canlı Oynatma Vurgusu**: Makro çalışırken, o an yürütülen eylem listede **vurgulanarak** akışı kolayca takip etmenizi sağlar.
-  * **🔁 Tekrarlı Otomasyon**: Makronuzun kaç kez otomatik olarak tekrarlanacağını modern +/- butonları ile kolayca ayarlayın.
-  * **💾 Makroları Kaydet & Yükle**: Kaydettiğiniz eylemleri `.json` dosyalarına aktarın ve istediğiniz zaman yeniden yükleyin.
-  * **🧾 Gelişmiş Eylem Listesi**: Eylemleriniz, gecikme süreleriyle birlikte anında listede belirir.
-  * **🎨 Modern Temalar**: Tek bir tıklamayla modern ve şık bir **karanlık mod** ile temiz bir **aydınlık mod** arasında geçiş yapın.
-  * **📣 Durum Çubuğu Bildirimleri**: “Kaydediliyor...”, “Oynatılıyor...” veya “Hazır” gibi net durum mesajları alın.
-  * **🧵 Güvenli ve Kesintili Oynatma**: Oynatma, uygulamanın donmasını önlemek için ayrı bir iş parçacığında (thread) çalışır. Oynatmayı istediğiniz zaman güvenle durdurabilirsiniz.
+  * **🎥 Record & Playback**: Precisely record your keyboard and mouse actions and replay them with accurate timing.
+  * **✏️ Edit & Delete Actions**: Fine-tune your macros after recording. Right-click any action to open the edit dialog and modify its **delay, key, or mouse coordinates**, or simply delete it.
+  * **⏱️ Smart Delay Recording**: Automatically captures the time delays between your actions, resulting in more natural and reliable playback.
+  * **🔦 Live Playback Highlighting**: Visually track your macro's execution. The currently running action is **highlighted in the list**, so you always know what's happening.
+  * **🔁 Loop Automation**: Easily set how many times you want your macro to repeat using the modern stepper controls.
+  * **💾 Save & Load Macros**: Export your recorded workflows to `.json` files and load them back anytime.
+  * **🧾 Enhanced Action List**: Watch your actions, including their specific delays, appear in the list instantly as you record.
+  * **🎨 Modern Theming**: Switch between a sleek dark mode and a clean light mode with a single click to match your preference.
+  * **📣 Status Bar Notifications**: Stay informed with clear status messages like “Recording...”, “Playing...”, or “Ready.”
+  * **🧵 Safe Multithreaded Playback**: Playback runs on a separate thread to keep the UI responsive. You can safely interrupt the process at any time without freezing the app.
 
 -----
 
-## 📚 Nasıl Kullanılır?
+## 📚 How to Use
 
-**1. Bağımlılıkları Yükleyin**
+**1. Install Dependencies**
 
-Python 3'ün kurulu olduğundan emin olun. Ardından gerekli paketleri yükleyin:
+Make sure Python 3 is installed. Then, install the required packages:
 
 ```bash
 pip install PyQt6 pynput
 ```
 
-**2. Makronuzu Kaydedin**
+**2. Record Your Macro**
 
-  * "Record" (Kaydet) butonuna tıklayın.
-  * Fare tıklamalarınızı ve tuş vuruşlarınızı gerçekleştirin.
-  * Bitirdiğinizde "Stop" (Durdur) butonuna tıklayın.
+  * Click **"Record"** to start.
+  * Perform your mouse clicks and key presses.
+  * Click **"Stop"** when you are finished.
+    Your actions will appear in the "Recorded Actions" list.
 
-Eylemleriniz, "Recorded Actions" (Kaydedilen Eylemler) listesinde görünecektir.
+**3. Edit Your Macro (Optional)**
 
-**3. Makroyu Düzenleyin (İsteğe Bağlı)**
+  * **Right-click** on an action in the list to open the context menu.
+  * Select **"Edit"** to modify its properties (like delay or coordinates) or **"Delete"** to remove it.
 
-  * Listeden bir eylemi değiştirmek veya silmek için üzerine **sağ tıklayın**.
-  * Açılan menüden "Edit" (Düzenle) veya "Delete" (Sil) seçeneğini kullanın.
+**4. Play the Macro**
 
-**4. Makroyu Oynatın**
+  * Set the number of loops using the **"Repeats"** control.
+  * Click **"Play"** to start the playback.
+  * Use **"Stop Playback"** to cancel the process at any time.
 
-  * "Repeats" (Tekrar) kontrolünü kullanarak tekrar sayısını ayarlayın.
-  * "Play" (Oynat) butonuna tıklayarak oynatmayı başlatın.
-  * İstediğiniz zaman iptal etmek için "Stop Playback" (Oynatmayı Durdur) butonunu kullanın.
+**5. Save or Load Macros**
 
-**5. Makroları Kaydedin veya Yükleyin**
-
-  * "Save" (Kaydet) butonuna tıklayarak eylemlerinizi bir `.json` dosyasına aktarın.
-  * "Load" (Yükle) butonuna tıklayarak daha önce kaydettiğiniz bir makroyu açın.
+  * Click **"Save"** to export your actions to a `.json` file.
+  * Click **"Load"** to open a previously saved macro.
 
 -----
 
-## 🛠 Kullanılan Teknolojiler
+## 🛠 Technologies Used
 
   * **Python 3**
-  * **PyQt6** – Kullanıcı arayüzünü oluşturmak için
-  * **Pynput** – Klavye/fare girdilerini yakalamak ve simüle etmek için
+  * **PyQt6** – For building the user interface.
+  * **Pynput** – For capturing and simulating keyboard/mouse input.
 
 -----
 
-## 💡 İdeal Kullanım Alanları
+## 💡 Ideal Use Cases
 
-  * Tekrarlayan veri girişlerini otomatikleştirmek
-  * Çok adımlı iş akışlarını çalıştırmak
-  * Kaydedilmiş iş akışlarını mükemmelleştirmek ve ince ayar yapmak
-  * Hızlı kullanıcı arayüzü demoları veya testleri oluşturmak
-  * Rutin masaüstü görevlerinde zaman kazanmak
+  * Automating repetitive data entry.
+  * Running multi-step workflows.
+  * Refining and perfecting recorded automation scripts.
+  * Creating quick UI demos or tests.
+  * Saving time on routine desktop tasks.
