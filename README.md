@@ -1,7 +1,3 @@
-Of course\! Here is a B2-level English description suitable for a GitHub README file for your project.
-
------
-
 # AutomatePro: A Simple GUI Macro Recorder
 
 AutomatePro is a user-friendly desktop application built with Python and PyQt6 that allows you to record and play back your mouse clicks and keyboard presses. It's a simple tool designed to automate repetitive tasks on your computer.
