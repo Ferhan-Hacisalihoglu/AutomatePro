@@ -1,4 +1,4 @@
-# 🎛️ AutomatePro: Simple GUI-Based Macro Recorder for Windows/Linux
+# 🎛️ AutomatePro: Simple GUI-Based Macro Recorder
 
 **AutomatePro** is a lightweight and intuitive desktop application built with **Python** and **PyQt6** that lets you easily **record** and **replay** your mouse clicks and keyboard actions. Whether you're automating repetitive tasks or creating quick workflows, AutomatePro is your go-to tool for desktop automation.
 
